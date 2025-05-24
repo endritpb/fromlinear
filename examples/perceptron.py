@@ -20,7 +20,7 @@ def averaged_perceptron(X, Y, T=10):
   stp = 1.0 / (X.shape[0] * T)
   for t in range(T):                             
     for i in tqdm(np.random.permutation(X.shape[0]), desc=f"Epoch [{t+1}/{T}]"):
-      if Y[i]*(theta@X[i]+theta_0) <= 0:   
+      if Y[i]*(theta@X[i]+theta_0) <= 1e-8:   
         theta += Y[i]*X[i]; theta_0 += Y[i]                          
         theta_bar += C*Y[i]*X[i]; theta_0_bar += C*Y[i]                  
       C -= stp                      
