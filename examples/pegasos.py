@@ -58,6 +58,6 @@ if __name__ == "__main__":
   print(f"[Passive-Aggressive {variant}] test_accuracy: {(np.sign(X_test @ theta + theta_0) == Y_test).mean():.4f}\n")
   
   batch_size = 256
-  theta, theta_0 = pegasos(X_train, Y_train, T=10*(X_train.shape[0]//batch_size), lambda_=5e-3, batch_size=batch_size)
+  theta, theta_0 = pegasos(X_train, Y_train, T=10*(X_train.shape[0]//batch_size), lambda_=1e-4, batch_size=batch_size)
   print(f"[Mini-Batch Pegasos] test_accuracy: {(np.sign(X_test @ theta + theta_0) == Y_test).mean():.4f}\n")
   
