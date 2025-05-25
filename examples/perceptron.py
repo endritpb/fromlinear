@@ -30,15 +30,15 @@ if __name__ == "__main__":
   X_train, Y_train, X_test, Y_test = fetch_amazon_polarity()
   Y_train, Y_test = np.where(Y_train==0,-1,1), np.where(Y_test==0,-1,1)
   print(X_train.shape)
-  theta, theta_0, mistakes = perceptron(X_train, Y_train, T=5)
-  print(f"[Realizable Case Perceptron] test_accuracy: {(np.sign(X_test@theta+theta_0)==Y_test).mean():.4f}")
-  if os.getenv("VERBOSE")!=None:
-    print("\n[Perceptron] Convergence-theorem:")
-    print(f"  L1-NORM ‖θ‖₁ : {np.sum(np.abs(theta)):12.4f}")
-    print(f"  L2-NORM ‖θ‖₂ : {np.linalg.norm(theta, ord=2):12.4f}")
-    R = np.linalg.norm(X_train, axis=1).max()
-    gamma = 1/np.linalg.norm(theta, ord=2)
-    print(f"  R={R:2f}; gamma={gamma:2f}")
-    print(f"  mistakes<=(R/gamma)^2 {mistakes}<={int((R/gamma)**2)} -> {mistakes<=(R/gamma)**2} \n")
-  theta_bar, theta_bar_0 = averaged_perceptron(X_train, Y_train, T=5)
+  
+  theta, theta_0, mistakes = perceptron(X_train, Y_train, T=90)
+  if os.getenv("VERBOSE") != None:
+    print("\n[Perceptron] Convergence-Theorem:")
+    R = np.max(np.linalg.norm(X_train, axis=1)) # should be 1 since we normalize
+    margin = (X_train@theta+theta_0)
+    gamma = np.min((Y_train*margin)/np.linalg.norm(theta)) # Use the perceptron weights θ as an approximation of θ* 
+    print(f"k={mistakes} γ={gamma} train_accuracy: {(np.sign(margin)==Y_train).mean():.2f} - PMB (R/γ)^2: {(R / gamma)**2:.2f}")
+  print(f"[Realizable Case Perceptron] test_accuracy: {(np.sign(X_test@theta+theta_0)==Y_test).mean():.4f} \n")
+  
+  theta_bar, theta_bar_0 = averaged_perceptron(X_train, Y_train, T=10)
   print(f"[Averaged Perceptron] test_accuracy: {(np.sign(X_test@theta_bar+theta_bar_0)==Y_test).mean():.4f}")
