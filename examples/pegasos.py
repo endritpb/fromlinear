@@ -1,5 +1,6 @@
-import os, numpy as np
-from tqdm import trange, tqdm
+# https://home.ttic.edu/~nati/Publications/PegasosMPB.pdf
+import numpy as np
+from tqdm import tqdm
 from extra.datasets import fetch_amazon_polarity
 
 def hinge_loss(X, Y, theta, theta_0):
@@ -7,7 +8,7 @@ def hinge_loss(X, Y, theta, theta_0):
 
 # NOTE: will strongly bias the selection towards particular kinds of classifiers
 # We want to find a new weight vector theta_{t+1} that is:
-#	•	Close to the old weights theta_t (don’t want big changes), and
+#	•	Close to the old weights theta (don’t want big changes), and
 #	•	Correctly classifies the current example with margin at least 1
 def passive_aggressive(X, Y, T=10, C=1, variant="PA"):
   # linear classifier that explicitly minimizes the hinge loss
@@ -27,19 +28,22 @@ def passive_aggressive(X, Y, T=10, C=1, variant="PA"):
   return theta, theta_0
 
 # Learning a classifier as an optimization problem
-def pegasos(X, Y, T=10, lambda_=0.1):
-  theta, theta_0, c = np.zeros(X.shape[1], dtype=np.float32), 0.0, 1.0
-  with tqdm(total=T * X.shape[0]) as pbar:
-    for _ in range(T):
-      for i in np.random.permutation(X.shape[0]):
-        eta = 1.0/(lambda_*c); c+=1.0
-        if Y[i]*(X[i]@theta+theta_0) < 1.0:
-          theta = (1-eta*lambda_)*theta + eta*Y[i]*X[i]
-          theta_0 += eta*Y[i]
-        else:
-          theta *= (1-eta*lambda_)
-        theta *= min(1.0, 1.0/(np.sqrt(lambda_)*np.linalg.norm(theta)+1e-12))
-        pbar.update(1)
+def pegasos(X, Y, lambda_, T=100, batch_size=32):
+  theta, theta_0 = np.zeros(X.shape[1]), 0.0
+  for t in tqdm(range(1, T+1)):
+    indices = np.random.choice(X.shape[0], size=batch_size, replace=False)
+    X_b, Y_b = X[indices], Y[indices]
+    A = np.where(Y_b*(X_b@theta+theta_0) < 1)[0]
+    eta = 1.0 / (lambda_ * t)
+    if len(A) > 0:
+      grad_theta, grad_theta_0 = np.sum(Y_b[A, None]*X_b[A], axis=0), np.sum(Y_b[A])
+    else:
+      grad_theta, grad_theta_0 = 0.0, 0.0
+    theta = (1-eta*lambda_)*theta + (eta/batch_size) * grad_theta
+    theta_0 = theta_0 + (eta/batch_size) * grad_theta_0  
+    w_norm = np.linalg.norm(theta)
+    if w_norm != 0:
+      theta = min(1.0, 1.0 / (np.sqrt(lambda_) * w_norm)) * theta
   return theta, theta_0
 
 if __name__ == "__main__":
@@ -49,9 +53,9 @@ if __name__ == "__main__":
 
   variant = "PA-I"
   theta, theta_0 = passive_aggressive(X_train, Y_train, T=10, C=1, variant=variant)
-  print(f"[Passive-Aggressive {variant}] test_accuracy: {(np.sign(X_test @ theta + theta_0) == Y_test).mean():.4f}\n")
+  print(f"[Passive-Aggressive {variant}] test_accuracy: {(np.sign(X_test@theta+theta_0)==Y_test).mean():.4f}\n")
 
-  theta, theta_0 = pegasos(X_train, Y_train, T=10, lambda_=1e-4)
-  print(f"[Pegasos] test_accuracy: {(np.sign(X_test @ theta + theta_0) == Y_test).mean():.4f}\n")
+  theta, theta_0 = pegasos(X_train, Y_train, T=5000, lambda_=1e-5, batch_size=32)
+  print(f"[Mini-Batch Pegasos] test_accuracy: {(np.sign(X_test@theta+theta_0)==Y_test).mean():.4f}\n")
   
    
