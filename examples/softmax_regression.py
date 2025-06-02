@@ -3,6 +3,13 @@ np.set_printoptions(suppress=True)
 from tqdm import trange
 from extra.datasets import fetch_mnist
 
+def principal_components(X, n_pcs=2):
+  feature_means = X.mean(axis=0)
+  X_centered = X - feature_means
+  _, _, Vt = np.linalg.svd(X_centered, full_matrices=False)
+  components = Vt.T[:, :n_pcs]
+  return components, feature_means
+
 class BCELoss:
   def forward(self, y, yhat):
     return -(y * np.log(yhat + 1e-9) + (1 - y) * np.log(1 - yhat + 1e-9)).mean()
@@ -74,6 +81,10 @@ if __name__ == "__main__":
   X_train, Y_train, X_test, Y_test = fetch_mnist()
   X_train, X_test = X_train / 255.0, X_test / 255.0
   
+  pcs, feature_means = principal_components(X_train, n_pcs=75)
+  X_train = (X_train - feature_means).dot(pcs)
+  X_test = (X_test - feature_means).dot(pcs)
+
   """
   Y_train_8, Y_test_8 = (Y_train == 8).astype(int), (Y_test == 8).astype(int) # binary classifier
   model = LogisticRegression(in_features=784, lr=0.1)
@@ -90,15 +101,15 @@ if __name__ == "__main__":
   """
 
   # multinomial model, extends logistic regression to handle multiple classes
-  model = SoftmaxRegression(in_features=784, out_features=10, lr=0.01, temperature=0.3, lambda_=0.01)
+  model = SoftmaxRegression(in_features=X_train.shape[1], out_features=10, lr=0.5, temperature=0.1, lambda_=0.0)
   loss_fn = NLLLoss()
-  epochs = 8000
+  epochs = 10000
   for epoch in (t:=trange(epochs)):   
-    samp = np.random.choice(X_train.shape[0], size=512)                         
+    samp = np.random.choice(X_train.shape[0], size=1024)                         
     X, y = X_train[samp], Y_train[samp]
     out = model(X)
     loss = loss_fn(y, out)
     model.step(*loss_fn.backward(X, y, out))
-    if epoch % 10 == 0 or epoch+1 == epochs:                              
+    if epoch % 50 == 0 or epoch+1 == epochs:                              
       t.set_description(f'Epoch [{epoch}/{epochs}] loss: {loss:.4f} test_accuracy: {(np.argmax(model(X_test), axis=1) == Y_test).mean()}')
   
