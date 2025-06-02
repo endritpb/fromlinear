@@ -101,7 +101,7 @@ if __name__ == "__main__":
   """
 
   # multinomial model, extends logistic regression to handle multiple classes
-  model = SoftmaxRegression(in_features=X_train.shape[1], out_features=10, lr=0.5, temperature=0.1, lambda_=0.0)
+  model = SoftmaxRegression(in_features=X_train.shape[1], out_features=10, lr=0.5, temperature=0.1, lambda_=0.01)
   loss_fn = NLLLoss()
   epochs = 10000
   for epoch in (t:=trange(epochs)):   
